@@ -1,0 +1,474 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ MULTI-TENANT CORE ============
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  projects    Project[]
+  chatRooms   ChatRoom[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+
+  memberships     Membership[]
+  assignedTickets Ticket[]      @relation("Assignee")
+  reportedTickets Ticket[]      @relation("Reporter")
+  comments        Comment[]
+  retroItems      RetroItem[]
+  impediments     Impediment[]  @relation("ImpedimentReporter")
+  chatMessages    ChatMessage[]
+  votes           RetroVote[]
+  ownedChatRooms  ChatRoom[]    @relation("ChatRoomOwner")
+}
+
+enum ScrumRole {
+  PRODUCT_MANAGER
+  PRODUCT_OWNER
+  SCRUM_MASTER
+  DEVELOPER
+  UX_DESIGNER
+  QA_ENGINEER
+  DATA_ANALYST
+  TECH_LEAD
+  STAKEHOLDER
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           ScrumRole
+  isAdmin        Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectMembers ProjectMember[]
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+// ============ PROJECTS ============
+
+model Project {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  key            String   // ex: "AJX"
+  description    String?  @db.Text
+  vision         String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      ProjectMember[]
+  sprints      Sprint[]
+  tickets      Ticket[]
+  okrs         OKR[]
+  personas     Persona[]
+  journeys     Journey[]
+  testPlans    TestPlan[]
+  impediments  Impediment[]
+  retros       Retrospective[]
+  dailies      Daily[]
+  chatRooms    ChatRoom[]
+  roadmapItems RoadmapItem[]
+  definitionOfDone DoDItem[]
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
+model ProjectMember {
+  id           String     @id @default(cuid())
+  projectId    String
+  membershipId String
+  role         ScrumRole
+  createdAt    DateTime   @default(now())
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, membershipId])
+}
+
+// ============ SPRINTS ============
+
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+}
+
+model Sprint {
+  id          String       @id @default(cuid())
+  projectId   String
+  name        String
+  goal        String?      @db.Text
+  startDate   DateTime
+  endDate     DateTime
+  status      SprintStatus @default(PLANNED)
+  createdAt   DateTime     @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+  retro   Retrospective?
+  dailies Daily[]
+
+  @@index([projectId])
+}
+
+// ============ TICKETS / BACKLOG ============
+
+enum TicketType {
+  STORY
+  BUG
+  TASK
+  SPIKE
+  TECH_DEBT
+}
+
+enum TicketStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  CODE_REVIEW
+  QA
+  DONE
+}
+
+enum Priority {
+  LOWEST
+  LOW
+  MEDIUM
+  HIGH
+  HIGHEST
+}
+
+model Ticket {
+  id              String       @id @default(cuid())
+  projectId       String
+  sprintId        String?
+  key             String       // ex: AJX-123
+  title           String
+  description     String?      @db.Text
+  acceptanceCriteria String?   @db.Text
+  type            TicketType   @default(STORY)
+  status          TicketStatus @default(BACKLOG)
+  priority        Priority     @default(MEDIUM)
+  storyPoints     Int?
+  rank            Float        @default(0)
+  reporterId      String?
+  assigneeId      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  completedAt     DateTime?
+
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint    Sprint?   @relation(fields: [sprintId], references: [id])
+  assignee  User?     @relation("Assignee", fields: [assigneeId], references: [id])
+  reporter  User?     @relation("Reporter", fields: [reporterId], references: [id])
+  comments  Comment[]
+  history   TicketHistory[]
+  testCases TestCase[]
+  labels    TicketLabel[]
+
+  @@unique([projectId, key])
+  @@index([sprintId])
+  @@index([projectId])
+}
+
+model TicketLabel {
+  id       String @id @default(cuid())
+  ticketId String
+  label    String
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  @@index([ticketId])
+}
+
+model TicketHistory {
+  id        String   @id @default(cuid())
+  ticketId  String
+  action    String
+  fromValue String?  @db.Text
+  toValue   String?  @db.Text
+  userId    String?
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  @@index([ticketId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  userId    String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+  @@index([ticketId])
+}
+
+// ============ DEFINITION OF DONE ============
+
+model DoDItem {
+  id        String   @id @default(cuid())
+  projectId String
+  text      String
+  order     Int      @default(0)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ============ CEREMONIES: DAILY, RETRO ============
+
+model Daily {
+  id        String   @id @default(cuid())
+  projectId String
+  sprintId  String
+  date      DateTime
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint  Sprint  @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  updates DailyUpdate[]
+}
+
+model DailyUpdate {
+  id          String @id @default(cuid())
+  dailyId     String
+  userId      String
+  yesterday   String @db.Text
+  today       String @db.Text
+  blockers    String? @db.Text
+
+  daily Daily @relation(fields: [dailyId], references: [id], onDelete: Cascade)
+}
+
+enum RetroColumn {
+  WENT_WELL
+  TO_IMPROVE
+  ACTION_ITEM
+}
+
+model Retrospective {
+  id        String   @id @default(cuid())
+  projectId String
+  sprintId  String   @unique
+  title     String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint  Sprint  @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  items   RetroItem[]
+}
+
+model RetroItem {
+  id              String      @id @default(cuid())
+  retrospectiveId String
+  column          RetroColumn
+  body            String      @db.Text
+  authorId        String
+  createdAt       DateTime    @default(now())
+
+  retrospective Retrospective @relation(fields: [retrospectiveId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id])
+  votes         RetroVote[]
+}
+
+model RetroVote {
+  id          String @id @default(cuid())
+  retroItemId String
+  userId      String
+
+  retroItem RetroItem @relation(fields: [retroItemId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([retroItemId, userId])
+}
+
+// ============ IMPEDIMENTS ============
+
+enum ImpedimentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model Impediment {
+  id          String           @id @default(cuid())
+  projectId   String
+  title       String
+  description String?          @db.Text
+  status      ImpedimentStatus @default(OPEN)
+  reporterId  String
+  createdAt   DateTime         @default(now())
+  resolvedAt  DateTime?
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reporter User    @relation("ImpedimentReporter", fields: [reporterId], references: [id])
+
+  @@index([projectId])
+}
+
+// ============ ROADMAP / OKR ============
+
+enum RoadmapStatus {
+  IDEA
+  PLANNED
+  IN_PROGRESS
+  SHIPPED
+}
+
+model RoadmapItem {
+  id          String        @id @default(cuid())
+  projectId   String
+  title       String
+  description String?       @db.Text
+  quarter     String        // ex: "2026-Q1"
+  status      RoadmapStatus @default(IDEA)
+  riceScore   Float?
+  createdAt   DateTime      @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model OKR {
+  id          String   @id @default(cuid())
+  projectId   String
+  objective   String
+  quarter     String
+  createdAt   DateTime @default(now())
+
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  keyResults KeyResult[]
+}
+
+model KeyResult {
+  id      String  @id @default(cuid())
+  okrId   String
+  text    String
+  target  Float
+  current Float   @default(0)
+
+  okr OKR @relation(fields: [okrId], references: [id], onDelete: Cascade)
+}
+
+// ============ DISCOVERY: PERSONAS / JOURNEYS ============
+
+model Persona {
+  id          String  @id @default(cuid())
+  projectId   String
+  name        String
+  role        String?
+  goals       String? @db.Text
+  pains       String? @db.Text
+  bio         String? @db.Text
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Journey {
+  id        String  @id @default(cuid())
+  projectId String
+  name      String
+  steps     String  @db.Text  // JSON-encoded steps
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ============ QA: TEST PLANS ============
+
+enum TestStatus {
+  NOT_RUN
+  PASSED
+  FAILED
+  BLOCKED
+}
+
+model TestPlan {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  scope     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  project Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  cases   TestCase[]
+}
+
+model TestCase {
+  id         String     @id @default(cuid())
+  testPlanId String
+  ticketId   String?
+  title      String
+  steps      String     @db.Text
+  expected   String     @db.Text
+  status     TestStatus @default(NOT_RUN)
+
+  testPlan TestPlan @relation(fields: [testPlanId], references: [id], onDelete: Cascade)
+  ticket   Ticket?  @relation(fields: [ticketId], references: [id])
+}
+
+// ============ CHAT ============
+
+enum ChatRoomKind {
+  TEAM
+  AI_ASSISTANT
+}
+
+model ChatRoom {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String?
+  ownerId        String?      // Preenchido em salas AI_ASSISTANT individuais; null em salas TEAM compartilhadas
+  name           String
+  kind           ChatRoomKind @default(TEAM)
+  createdAt      DateTime     @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner        User?         @relation("ChatRoomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  messages     ChatMessage[]
+
+  @@index([organizationId])
+  @@index([ownerId])
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  chatRoomId String
+  userId     String?  // null when role=AI
+  role       String   // "user" | "ai" | "system"
+  body       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id])
+
+  @@index([chatRoomId])
+}
