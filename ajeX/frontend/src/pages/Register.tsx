@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/store/auth";
-import { Button } from "@/components/ui/Button";
-import { Input, Label } from "@/components/ui/Input";
+import { Logo } from "@/components/ui/Logo";
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -24,21 +23,43 @@ export function RegisterPage() {
     } finally { setLoading(false); }
   }
 
+  const field =
+    "w-full rounded-lg border border-white/15 bg-white/5 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-brand-500 focus:bg-white/10 focus:ring-2 focus:ring-brand-500/30";
+  const label = "mb-1.5 block text-sm font-medium text-white/80";
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 to-slate-100 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
-        <h1 className="mb-1 text-xl font-bold text-slate-900">Criar conta</h1>
-        <p className="mb-5 text-xs text-slate-500">Você se torna admin de uma nova organização.</p>
-        <form onSubmit={submit} className="space-y-3">
-          <div><Label>Nome</Label><Input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-          <div><Label>Email</Label><Input required type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
-          <div><Label>Senha</Label><Input required type="password" minLength={6} value={form.password} onChange={e => setForm({...form, password: e.target.value})} /></div>
-          <div><Label>Nome da organização</Label><Input required value={form.organizationName} onChange={e => setForm({...form, organizationName: e.target.value})} /></div>
-          {error && <div className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</div>}
-          <Button type="submit" className="w-full" disabled={loading}>{loading ? "Criando..." : "Criar conta"}</Button>
-        </form>
-        <div className="mt-4 text-center text-sm text-slate-500">
-          Já tem conta? <Link to="/login" className="text-brand-600 hover:underline">Entrar</Link>
+    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-white p-12 lg:flex">
+        <Logo size={30} light={false} />
+        <div className="max-w-md">
+          <h2 className="text-4xl font-extrabold leading-tight tracking-tight text-ink-900">
+            Comece a organizar<br /><span className="text-brand-500">seu time ágil.</span>
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-slate-500">
+            Crie sua organização e você se torna admin — backlog, sprints e métricas em minutos.
+          </p>
+        </div>
+        <div aria-hidden className="pointer-events-none absolute -right-24 bottom-8 h-72 w-72 rounded-full bg-brand-500/5" />
+      </div>
+
+      <div className="flex flex-col items-center justify-center bg-ink-800 p-8">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex justify-center lg:hidden"><Logo size={30} /></div>
+          <h1 className="text-2xl font-bold text-white">Criar conta</h1>
+          <p className="mt-1 text-sm text-white/50">Você se torna admin de uma nova organização.</p>
+          <form onSubmit={submit} className="mt-7 space-y-4">
+            <div><label className={label}>Nome</label><input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={field} /></div>
+            <div><label className={label}>Email</label><input required type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={field} /></div>
+            <div><label className={label}>Senha</label><input required type="password" minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className={field} /></div>
+            <div><label className={label}>Nome da organização</label><input required value={form.organizationName} onChange={e => setForm({ ...form, organizationName: e.target.value })} className={field} /></div>
+            {error && <div className="rounded-lg bg-rose-500/15 p-2 text-sm text-rose-300">{error}</div>}
+            <button type="submit" disabled={loading} className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-bold text-white transition hover:bg-brand-600 disabled:opacity-60">
+              {loading ? "Criando..." : "Criar conta"}
+            </button>
+          </form>
+          <div className="mt-5 text-center text-sm text-white/60">
+            Já tem conta? <Link to="/login" className="font-semibold text-brand-500 hover:text-brand-400">Entrar</Link>
+          </div>
         </div>
       </div>
     </div>

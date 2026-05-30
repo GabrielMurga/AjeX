@@ -83,18 +83,18 @@ export function ChatPage() {
   return (
     <div className="flex h-full flex-col p-6">
       <PageHeader title="Chat & IA" subtitle="Converse com seu time ou peça insights ao AjeX Assistant" />
-      <div className="flex flex-1 gap-3 overflow-hidden">
+      <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
         <Card className="w-64 overflow-hidden">
           <CardBody className="p-2">
-            <div className="mb-1 px-2 text-xs font-semibold text-slate-500 uppercase">Salas</div>
+            <div className="mb-1 px-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">Salas</div>
             {rooms.map(r => (
               <button
                 key={r.id}
                 onClick={() => setActiveRoomId(r.id)}
-                className={cn("flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm hover:bg-slate-100",
-                  activeRoomId === r.id && "bg-brand-50 text-brand-700")}
+                className={cn("flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition hover:bg-slate-50",
+                  activeRoomId === r.id && "bg-brand-50 font-semibold text-brand-700")}
               >
-                {r.kind === "AI_ASSISTANT" ? <Sparkles size={14} className="text-purple-500" /> : <MessageSquare size={14} className="text-slate-400" />}
+                {r.kind === "AI_ASSISTANT" ? <Sparkles size={15} className="text-brand-500" /> : <MessageSquare size={15} className="text-slate-400" />}
                 <span className="flex-1 truncate">{r.name}</span>
               </button>
             ))}
@@ -104,40 +104,40 @@ export function ChatPage() {
         <Card className="flex flex-1 flex-col overflow-hidden">
           {activeRoom ? (
             <>
-              <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  {activeRoom.kind === "AI_ASSISTANT" ? <Sparkles size={16} className="text-purple-500" /> : <MessageSquare size={16} />}
-                  <div className="font-semibold text-slate-900">{activeRoom.name}</div>
-                  <Badge tone={activeRoom.kind === "AI_ASSISTANT" ? "purple" : "slate"}>{activeRoom.kind === "AI_ASSISTANT" ? "IA" : "Time"}</Badge>
+                  {activeRoom.kind === "AI_ASSISTANT" ? <Sparkles size={16} className="text-brand-500" /> : <MessageSquare size={16} className="text-ink-700" />}
+                  <div className="font-bold text-ink-900">{activeRoom.name}</div>
+                  <Badge tone={activeRoom.kind === "AI_ASSISTANT" ? "orange" : "slate"}>{activeRoom.kind === "AI_ASSISTANT" ? "IA" : "Time"}</Badge>
                 </div>
               </div>
               <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4 scrollbar-thin">
                 {messages.map((m: any) => (
                   <div key={m.id} className={cn("flex gap-2", m.userId === user.id && "flex-row-reverse")}>
                     {m.role === "ai" ? (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-                        <Sparkles size={14} />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink-800 text-brand-500">
+                        <Sparkles size={15} />
                       </div>
                     ) : <Avatar name={m.user?.name || "?"} size={32} />}
-                    <div className={cn("max-w-[70%] rounded-lg px-3 py-2 text-sm",
-                      m.role === "ai" ? "bg-purple-50 text-slate-800" :
-                      m.userId === user.id ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-800"
+                    <div className={cn("max-w-[70%] rounded-2xl px-3.5 py-2 text-sm",
+                      m.role === "ai" ? "rounded-tl-sm bg-ink-800/5 text-ink-800" :
+                      m.userId === user.id ? "rounded-tr-sm bg-brand-500 text-white" : "rounded-tl-sm bg-slate-100 text-ink-800"
                     )}>
-                      {m.role !== "ai" && m.userId !== user.id && <div className="mb-0.5 text-xs font-semibold opacity-75">{m.user?.name}</div>}
+                      {m.role !== "ai" && m.userId !== user.id && <div className="mb-0.5 text-xs font-semibold opacity-70">{m.user?.name}</div>}
                       <div className="whitespace-pre-wrap">{m.body}</div>
                     </div>
                   </div>
                 ))}
                 {aiTyping && (
                   <div className="flex gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-                      <Sparkles size={14} />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-800 text-brand-500">
+                      <Sparkles size={15} />
                     </div>
-                    <div className="rounded-lg bg-purple-50 px-3 py-2 text-sm text-slate-500 italic">IA está pensando...</div>
+                    <div className="rounded-2xl rounded-tl-sm bg-ink-800/5 px-3.5 py-2 text-sm italic text-slate-500">IA está pensando...</div>
                   </div>
                 )}
               </div>
-              <div className="border-t border-slate-200 p-3">
+              <div className="border-t border-slate-100 p-3">
                 <div className="flex gap-2">
                   <Input
                     value={input}
@@ -145,7 +145,7 @@ export function ChatPage() {
                     onKeyDown={e => { if (e.key === "Enter") send(); }}
                     placeholder={isAiRoom ? "Pergunte algo sobre o projeto..." : "Mensagem para o time..."}
                   />
-                  <Button onClick={send} disabled={!input.trim()}><Send size={14} /></Button>
+                  <Button onClick={send} disabled={!input.trim()}><Send size={15} /></Button>
                 </div>
                 {isAiRoom && (
                   <div className="mt-2 text-xs text-slate-400">
